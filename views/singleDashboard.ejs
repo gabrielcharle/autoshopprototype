@@ -1,0 +1,492 @@
+<h2>Visualization Area for <%= title %></h2>
+
+<% 
+// Helper function to generate distinct colors for charts
+const generateColors = (count) => {
+    const colors = [];
+    const baseColors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2'];
+    for(let i = 0; i < count; i++) {
+        const hue = i * (360 / count);
+        // Use a mix of defined colors and HSL generation for variety
+        colors.push(baseColors[i % baseColors.length] || `hsl(${hue}, 70%, 50%)`); 
+    }
+    return colors;
+}
+%>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+
+<% if (dashboardNumber === 6) { %>
+    <h3>📍 Stock Breakdown by Location</h3>
+    
+    <% 
+        const locationLabels = Object.keys(data);
+        let locationQuantities = locationLabels.map(loc => data[loc].reduce((sum, item) => sum + item.quantity, 0));
+        let totalQty = locationQuantities.reduce((a, b) => a + b, 0);
+    %>
+
+    <div style="display: flex; gap: 30px; margin-bottom: 30px;">
+        <div style="flex: 2;">
+            <h4>Inventory Quantity by Location </h4>
+            <canvas id="locationPieChart" width="400" height="200"></canvas>
+        </div>
+        
+        <div style="flex: 3;">
+            <p>Total Items Across All Locations: **<%= totalQty %>**</p>
+            <table border="1" cellpadding="8" cellspacing="0" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #e9ecef;">
+                        <th style="width: 30%;">Location</th>
+                        <th style="width: 50%;"># of Unique Items</th>
+                        <th style="width: 20%;">Total Quantity</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% locationLabels.forEach((location, index) => { %>
+                        <tr>
+                            <td><%= location %></td>
+                            <td><%= data[location].length %></td>
+                            <td><%= locationQuantities[index] %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('locationPieChart').getContext('2d');
+            const labels = <%= JSON.stringify(locationLabels) %>;
+            const values = <%= JSON.stringify(locationQuantities) %>;
+            
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: values,
+                        backgroundColor: generateColors(labels.length),
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Quantity Distribution by Location' }
+                    }
+                }
+            });
+        });
+    </script>
+    
+<% } else if (dashboardNumber === 5) { %>
+    <h3>⭐ Vendor Performance and Value Share</h3>
+
+    <% 
+        const vendors = Object.keys(data);
+        if (vendors.length > 0) {
+            const chartLabels = JSON.stringify(vendors);
+            const chartDataValues = JSON.stringify(vendors.map(v => data[v].totalValue.toFixed(2)));
+    %>
+
+    <div style="display: flex; gap: 30px; margin-bottom: 30px;">
+        <div style="flex: 2;">
+            <h4>Vendor Value Share </h4>
+            <canvas id="vendorPieChart" width="400" height="200"></canvas>
+        </div>
+        
+        <div style="flex: 3;">
+            <h4>Performance Summary Table</h4>
+            <table border="1" cellpadding="10" cellspacing="0" style="width: 100%;">
+                <thead>
+                    <tr style="background-color: #f0f8ff;">
+                        <th>Vendor Name</th>
+                        <th>Total Value Received</th>
+                        <th>Total Items Received</th>
+                        <th># of Receipts</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% vendors.forEach(vendor => { %>
+                        <tr>
+                            <td><%= vendor %></td>
+                            <td style="font-weight: bold;">$<%= data[vendor].totalValue.toFixed(2) %></td>
+                            <td><%= data[vendor].totalQuantity %></td>
+                            <td><%= data[vendor].receiptCount %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('vendorPieChart').getContext('2d');
+            const labels = <%= chartLabels %>;
+            const values = <%= chartDataValues %>;
+            
+            const chartData = {
+                labels: labels,
+                datasets: [{
+                    label: 'Value Received ($)',
+                    data: values,
+                    backgroundColor: generateColors(labels.length),
+                    hoverOffset: 10
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'pie',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Percentage of Total Inventory Value by Vendor' }
+                    }
+                }
+            });
+        });
+    </script>
+
+    <% } else { %>
+        <p>No successful 'RECEIVE' transactions found to generate vendor performance metrics.</p>
+    <% } %>
+
+<% } else if (dashboardNumber === 4) { %>
+    <h3>🔄 Inventory Turns and Aged Stock</h3>
+
+    <div style="display: flex; gap: 30px; margin-bottom: 30px;">
+        <div style="flex: 1; padding: 20px; border: 1px solid #ccc; border-radius: 8px; background-color: #f9f9f9;">
+            <h4>Inventory Turns Score</h4>
+            <h1 style="color: #2e8b57; font-size: 3em; margin: 0;"><%= data.inventoryTurns %></h1>
+            <p style="font-size: 0.9em; color: #555;">(COGS / Avg. Inventory - Last 30 Days)</p>
+            <p>Calculations based on:</p>
+            <ul>
+                <li>Simulated COGS (Issued Cost last 30 days): **$<%= data.totalIssuedCost %>**</li>
+                <li>Current Inventory Value: **$<%= data.currentInventoryValue %>**</li>
+            </ul>
+        </div>
+        
+        <div style="flex: 1;">
+            <h4>Inventory Turns Visualization </h4>
+            <canvas id="inventoryTurnsChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+
+    <h4>🕰️ Aged Stock (Received > 90 days ago)</h4>
+    <% if (data.agedStockList && data.agedStockList.length > 0) { %>
+        <table border="1" cellpadding="10" cellspacing="0" style="width: 100%;">
+            <thead>
+                <tr style="background-color: #ffcccc;">
+                    <th>SKU</th>
+                    <th>Part Name</th>
+                    <th>Quantity</th>
+                    <th>Date Received</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% data.agedStockList.forEach(item => { %>
+                    <tr>
+                        <td><%= item.sku %></td>
+                        <td><%= item.partName %></td>
+                        <td><%= item.quantity %></td>
+                        <td><%= item.dateReceived %></td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    <% } else { %>
+        <p style="color: green; font-weight: bold;">✅ No aged stock found! Everything is fresh.</p>
+    <% } %>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('inventoryTurnsChart').getContext('2d');
+            const turnsScore = <%= data.inventoryTurns %>;
+            
+            const chartData = {
+                labels: ['Your Score', 'Target Score (4.0)'],
+                datasets: [{
+                    label: 'Inventory Turns',
+                    data: [turnsScore, 4.0], 
+                    backgroundColor: [
+                        turnsScore >= 4.0 ? 'rgba(46, 139, 87, 0.8)' : 'rgba(255, 99, 132, 0.8)', 
+                        'rgba(54, 162, 235, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 255, 255, 1)',
+                        'rgba(255, 255, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            };
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    indexAxis: 'y',
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Turns Score'
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    
+<% } else if (dashboardNumber === 3) { %>
+    <h3>🕒 Transaction History Log</h3>
+    
+    <% if (data && data.length > 0) { 
+        // Aggregate data for Line Chart
+        const dates = [...new Set(data.map(item => item.timestamp.split('T')[0]))].sort().slice(-10); // Last 10 days/dates
+        const receiveData = dates.map(date => data.filter(item => item.timestamp.includes(date) && item.model === 'RECEIVE').reduce((sum, item) => sum + item.quantityChange, 0));
+        const issueData = dates.map(date => data.filter(item => item.timestamp.includes(date) && item.model === 'ISSUE').reduce((sum, item) => sum + Math.abs(item.quantityChange), 0));
+    %>
+
+    <div style="display: flex; gap: 30px; margin-bottom: 30px;">
+        <div style="flex: 2;">
+            <h4>Transaction Volume Trend (Last <%= dates.length %> Receipts) </h4>
+            <canvas id="transactionTrendChart" width="400" height="200"></canvas>
+        </div>
+        <div style="flex: 3;">
+            <table border="1" cellpadding="10" cellspacing="0" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>SKU</th>
+                        <th>Transaction Type</th>
+                        <th>Qty Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% data.forEach(item => { %>
+                        <tr style="background-color: <%= item.model === 'RECEIVE' ? '#e6ffe6' : '#fff0f0' %>;">
+                            <td><%= item.timestamp %></td>
+                            <td><%= item.sku %></td>
+                            <td><%= item.model %></td>
+                            <td style="font-weight: bold; color: <%= item.model === 'RECEIVE' ? 'green' : 'red' %>;"><%= item.quantityChange %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('transactionTrendChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: <%= JSON.stringify(dates) %>,
+                    datasets: [
+                        {
+                            label: 'Received Quantity',
+                            data: <%= JSON.stringify(receiveData) %>,
+                            borderColor: 'rgba(40, 167, 69, 1)',
+                            backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                            fill: true,
+                        },
+                        {
+                            label: 'Issued Quantity',
+                            data: <%= JSON.stringify(issueData) %>,
+                            borderColor: 'rgba(220, 53, 69, 1)',
+                            backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                            fill: true,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Quantity' }
+                        },
+                        x: {
+                            title: { display: true, text: 'Date' }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    <% } else { %>
+        <p>No transaction history entries found.</p>
+    <% } %>
+
+<% } else if (dashboardNumber === 2) { %>
+    <h3>🔴 Critical Stock List</h3>
+    
+    <% 
+        const lowStockCount = data.length;
+        // Total unique items is simply the count of the stock overview report (approximated here by low stock count + healthy count)
+        const totalItemsInInventory = 10; // Placeholder: Ideally fetch this dynamically
+        const healthyStockCount = totalItemsInInventory - lowStockCount; 
+    %>
+    
+    <div style="display: flex; gap: 30px; margin-bottom: 30px;">
+        <div style="flex: 2;">
+            <h4>Stock Health Breakdown </h4>
+            <canvas id="stockHealthChart" width="400" height="200"></canvas>
+        </div>
+        <div style="flex: 3;">
+            <table border="1" cellpadding="10" cellspacing="0">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Part Name</th>
+                        <th>Current Quantity</th>
+                        <th>Reorder Point</th>
+                        <th>Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% data.forEach(item => { %>
+                        <tr style="color: <%= item.quantity <= item.reorderPoint ? 'red' : 'inherit' %>;">
+                            <td><%= item.sku %></td>
+                            <td><%= item.partName %></td>
+                            <td><%= item.quantity %></td>
+                            <td><%= item.reorderPoint %></td>
+                            <td><%= item.location %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+            <% if (data.length === 0) { %>
+                <p style="color: green; font-weight: bold;">✅ All inventory levels are currently OK!</p>
+            <% } %>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('stockHealthChart').getContext('2d');
+            const lowCount = <%= lowStockCount %>;
+            const healthyCount = <%= healthyStockCount > 0 ? healthyStockCount : 0 %>;
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Critical Stock', 'Healthy Stock'],
+                    datasets: [{
+                        data: [lowCount, healthyCount],
+                        backgroundColor: ['#dc3545', '#28a745'],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Inventory Stock Health' }
+                    }
+                }
+            });
+        });
+    </script>
+
+<% } else if (dashboardNumber === 1) { %>
+    <h3>📈 Current Stock Overview (Quantity and Value)</h3>
+    
+    <% if (data && data.length > 0) { 
+        // Sort data by totalValue descending and take the top 5
+        const top5 = data.sort((a, b) => parseFloat(b.totalValue) - parseFloat(a.totalValue)).slice(0, 5);
+        const top5Labels = JSON.stringify(top5.map(item => item.sku));
+        const top5Values = JSON.stringify(top5.map(item => parseFloat(item.totalValue)));
+    %>
+    <div style="display: flex; gap: 30px; margin-bottom: 30px;">
+        <div style="flex: 2;">
+            <h4>Top 5 Items by Total Value </h4>
+            <canvas id="top5ValueChart" width="400" height="200"></canvas>
+        </div>
+        <div style="flex: 3;">
+            <table border="1" cellpadding="10" cellspacing="0" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>SKU</th>
+                        <th>Part Name</th>
+                        <th>Current Quantity</th>
+                        <th>Unit Cost</th>
+                        <th>Total Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% data.forEach(item => { %>
+                        <tr>
+                            <td><%= item.sku %></td>
+                            <td><%= item.partName %></td>
+                            <td><%= item.quantity %></td>
+                            <td>$<%= item.unitCost %></td>
+                            <td style="font-weight: bold;">$<%= item.totalValue %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+                <% 
+                    // Calculate Totals
+                    const grandTotalValue = data.reduce((sum, item) => sum + parseFloat(item.totalValue), 0).toFixed(2);
+                %>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" style="text-align: right; font-weight: bold;">GRAND TOTAL INVENTORY VALUE:</td>
+                        <td style="font-weight: bold; background-color: #e9ecef;">$<%= grandTotalValue %></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('top5ValueChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: <%= top5Labels %>,
+                    datasets: [{
+                        label: 'Total Value ($)',
+                        data: <%= top5Values %>,
+                        backgroundColor: generateColors(5),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Inventory Value ($)' }
+                        },
+                        x: {
+                            title: { display: true, text: 'SKU' }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        });
+    </script>
+    <% } else { %>
+        <p>No inventory records found.</p>
+    <% } %>
+
+<% } else { %>
+    <p>All six primary dashboards have been implemented.</p>
+<% } %>

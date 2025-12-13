@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title><%= title %></title>
+</head>
+<body>
+<h2><%= title %></h2>
+<form action="<%= formAction %>" method="POST">
+    <% fields.forEach(field => { %>
+        <label for="<%= field %>"><%= field.charAt(0).toUpperCase() + field.slice(1) %>:</label>
+        <% 
+            let type = 'text';
+            if (field === 'quantity' || field === 'reorderPoint' || field === 'unitCost') {
+                type = 'number';
+            }
+        %>
+        <input type="<%= type %>" id="<%= field %>" name="<%= field %>" required><br><br>
+    <% }); %>
+    <button type="submit"><%= title %></button>
+</form>    
+</body>
+</html>
