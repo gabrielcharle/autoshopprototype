@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management | <%= title %></title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f4f9; }
+        .header { 
+            background-color: #333; color: white; padding: 15px 30px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header a { color: white; text-decoration: none; margin-left: 20px; font-weight: bold; }
+        .header a:hover { color: #ccc; }
+        .main-container { display: flex; min-height: calc(100vh - 60px); }
+        
+        /* Sidebar Styling (Hidden unless on a dashboard page) */
+        .sidebar {
+            width: 250px; background-color: #e9ecef; padding: 20px; 
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); 
+            display: <%= locals.showSidebar ? 'block' : 'none' %>; 
+        }
+        .sidebar h3 { color: #333; margin-top: 0; border-bottom: 1px solid #ccc; padding-bottom: 10px; }
+        .sidebar p { font-size: 0.9em; color: #555; }
+        .sidebar ul { list-style-type: none; padding: 0; }
+        .sidebar a { 
+            display: block; padding: 10px 0; text-decoration: none; 
+            color: #007bff; border-bottom: 1px dashed #ccc; 
+        }
+        .sidebar a:hover { background-color: #d1d8df; }
+
+        /* Main Content Area */
+        .content { flex-grow: 1; padding: 30px; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h2>Inventory System</h2>
+        <nav>
+            <a href="/">Menu</a>
+            <a href="/receive">Receive Stock</a>
+            <a href="/issue">Issue Stock</a>
+            <a href="/dashboard/1">Dashboards</a> 
+            <% if (locals.currentUser) { %>
+                <a href="/logout" style="color: #ffcccc;">Logout (<%= locals.currentUser.role %>)</a>
+            <% } %>
+        </nav>
+    </header>
+
+    <div class="main-container">
+        <aside class="sidebar">
+            <h3>📊 Reports Navigation</h3>
+            <% if (locals.currentUser) { %>
+                <p>Role: <strong><%= locals.currentUser.role %></strong></p>
+                <p>Department: <strong><%= locals.currentUser.department %></strong></p>
+            <% } %>
+            
+            <ul>
+                <% 
+                // --- RBAC Sidebar Logic (NEW) ---
+                if (locals.currentUser && locals.ACCESS_MAP) {
+                    const userRole = locals.currentUser.role;
+                    const allowedDashboards = locals.ACCESS_MAP[userRole] || [];
+
+                    dashboards.forEach((name, index) => { 
+                        const routeNumber = index + 1;
+                        
+                        // Check if the current dashboard number is in the allowed list for the user's role
+                        if (allowedDashboards.includes(routeNumber)) { 
+                %>
+                        <li>
+                            <a href="/dashboard/<%= routeNumber %>">D<%= routeNumber %>: <%= name %></a>
+                        </li>
+                <% 
+                        }
+                    });
+                }
+                // --- END RBAC Sidebar Logic ---
+                %>
+            </ul>
+        </aside>
+
+        <main class="content">
+            <%- body %> 
+        </main>
+    </div>
+</body>
+</html>
