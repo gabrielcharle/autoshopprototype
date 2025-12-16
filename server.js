@@ -44,7 +44,7 @@ app.use(expressLayouts);
 app.set('layout', 'layout'); 
 
 app.use(session({
-    secret: 'A_STRONG_SECRET_KEY_GOES_HERE', 
+    secret: '8959b17a3498aa6fc8d0c8efa949dcf8',
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 60 * 60 * 1000 } 
@@ -230,7 +230,8 @@ app.post('/api/issue', requireLogin, async (req, res) => {
     console.log(`Server is running on http://localhost:${port}`);*/
     
     // 🚨 STARTUP AUTOMATION: Run Low Stock Report on Server Startup 🚨
-    lowStockReport(); 
+    /*
+    lowStockReport(); */
     /*
 }); */
 
