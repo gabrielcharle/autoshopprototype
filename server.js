@@ -1,5 +1,25 @@
 // server.js (FINAL, CORRECTED EXECUTION ORDER)
 
+
+
+// server.js (Modification)
+
+// ADD THIS LINE
+const path = require('path');
+// ADD THIS LINE
+const appDir = path.dirname(require.main.filename); 
+
+require('dotenv').config();
+
+// 🚨🚨 CRITICAL FIX: INITIALIZE AIRTABLE BASE FIRST! 🚨🚨
+// This MUST happen before any local module that uses the global.airtableBase variable.
+require('./airtable_utils');
+// ... (rest of the file remains the same) romove lines 5 = 17 for presentation locally
+
+
+
+
+
 require('dotenv').config();
 
 // 🚨🚨 CRITICAL FIX: INITIALIZE AIRTABLE BASE FIRST! 🚨🚨
