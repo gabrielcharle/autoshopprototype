@@ -1,0 +1,78 @@
+<%# report_location_breakdown.ejs %>
+
+<h3>Location Stock Breakdown: <%= title %></h3>
+
+<div class="chart-section" style="margin-top: 20px;">
+    <h4>Quantity Breakdown by Location</h4>
+    
+    <% if (reportData && reportData.locationChartData && reportData.locationChartData.length > 0) { %>
+        <div class="chart-container" style="margin: 0 auto;"> 
+            <canvas 
+                id="locationQuantityChart" 
+                width="800" 
+                height="300" 
+                style="max-width: 100%; height: auto;">
+            </canvas>
+        </div>
+        
+        <script>
+            const chartData = JSON.parse('<%- JSON.stringify(reportData.locationChartData) %>');
+            const labels = chartData.map(d => d.label);
+            const values = chartData.map(d => d.value);
+
+            const ctx = document.getElementById('locationQuantityChart').getContext('2d');
+            const locationQuantityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Quantity (Units)',
+                        data: values,
+                        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        </script>
+    <% } else { %>
+        <p>No location quantity data available for charting.</p>
+    <% } %>
+</div>
+
+<hr>
+
+<h4>Detailed Stock by Location</h4>
+<% if (reportData && reportData.data && reportData.data.length > 0) { %>
+    <table class="generic-table inventory-table">
+        <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Part Name</th>
+                <th>Quantity</th>
+                <th>Location ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% reportData.data.forEach(item => { %>
+                <tr>
+                    <td><%= item.sku %></td>
+                    <td><%= item.partName %></td>
+                    <td><%= item.quantity %></td>
+                    <td><%= item.locationId %></td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+<% } else { %>
+    <p class="no-data-message">No detailed stock data to display.</p>
+<% } %>

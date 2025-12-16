@@ -1,0 +1,9 @@
+<%# dashboard_container.ejs (The wrapper that holds all your custom reports) %>
+
+<div class="report-container">
+    <h2><%= title %></h2>
+
+    <%# This line dynamically includes the correct report EJS file, like report_inventory_turns.ejs %>
+    <%- include(reportTemplate, { reportData: reportData }); %>
+    
+</div>

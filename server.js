@@ -1,18 +1,27 @@
-// server.js (FINAL VERSION: ALL 6 DASHBOARDS, AUTHENTICATION, AND RBAC)
+// server.js (FINAL, CORRECTED EXECUTION ORDER)
+
 require('dotenv').config();
+
+// 🚨🚨 CRITICAL FIX: INITIALIZE AIRTABLE BASE FIRST! 🚨🚨
+// This MUST happen before any local module that uses the global.airtableBase variable.
+require('./airtable_utils');
+
+// 1. Core Express Setup
 const express = require('express');
 const expressLayouts = require('express-ejs-layouts'); 
 const session = require('express-session');
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Import Logic Modules
+
+// 2. IMPORT AUTOMATION AND LOGIC MODULES (Now imported *after* Airtable is initialized)
+const { lowStockReport } = require('./lowStockReport');
 const { 
     getStockOverviewReport,
     getLowStockReport, 
     getTransactionHistoryReport, 
     getInventoryTurnsReport,
-    getVendorPerformanceReport, // <<< D5 IMPORT
+    getVendorPerformanceReport,
     getLocationBreakdownReport 
 } = require('./reporting_logic'); 
 const { createReceiving, issueStock } = require('./transaction_logic'); 
@@ -89,53 +98,83 @@ app.get('/logout', (req, res) => {
 
 // --- ROUTE HANDLER: Main Menu (Home Page) ---
 app.get('/', requireLogin, async (req, res) => {
+    const message = req.query.message;
+    const status = req.query.status;
+    
     res.render('mainMenu', { 
         title: 'System Main Menu',
         dashboards: dashboardNames,
-        showSidebar: false 
+        showSidebar: false,
+        message: message, 
+        status: status     
     });
 });
 
 
-// --- ROUTE HANDLER: Six Dedicated Dashboards ---
-dashboardNames.forEach((name, index) => {
-    const routeNumber = index + 1;
-    app.get(`/dashboard/${routeNumber}`, requireLogin, async (req, res) => {
-        
-        const userRole = req.session.user.role;
-        
-        // RBAC ENFORCEMENT CHECK
-        if (!isAuthorized(userRole, routeNumber)) {
-            console.log(`[RBAC DENY] Role ${userRole} attempted to access Dashboard ${routeNumber}.`);
-            return res.status(403).render('accessDenied', { 
-                title: 'Access Denied', 
-                showSidebar: true
-            });
-        }
-        
-        // REPORTING LOGIC: All 6 Dashboards now handled
-        let reportData = null;
-        if (routeNumber === 1) { 
-            reportData = await getStockOverviewReport();
-        } else if (routeNumber === 2) {
-            reportData = await getLowStockReport();
-        } else if (routeNumber === 3) {
-            reportData = await getTransactionHistoryReport();
-        } else if (routeNumber === 4) { 
-            reportData = await getInventoryTurnsReport();
-        } else if (routeNumber === 5) { // <<< DASHBOARD 5 ROUTING
-            reportData = await getVendorPerformanceReport();
-        } else if (routeNumber === 6) { 
-            reportData = await getLocationBreakdownReport();
-        }
-        
-        res.render('singleDashboard', {
-            title: name,
-            dashboards: dashboardNames,
-            showSidebar: true, 
-            dashboardNumber: routeNumber,
-            data: reportData 
+// --- ROUTE HANDLER: Six Dedicated Dashboards (Unified Logic for Custom Templates) ---
+app.get('/dashboard/:id', requireLogin, async (req, res) => {
+    const dashboardId = parseInt(req.params.id);
+    const userRole = req.session.user.role;
+    const title = dashboardNames[dashboardId - 1];
+    let reportData = null;
+    let templateName = 'report_generic_table'; 
+
+    // RBAC ENFORCEMENT CHECK
+    if (!isAuthorized(userRole, dashboardId)) {
+        console.log(`[RBAC DENY] Role ${userRole} attempted to access Dashboard ${dashboardId}.`);
+        return res.status(403).render('accessDenied', { 
+            title: 'Access Denied', 
+            showSidebar: true
         });
+    }
+
+    // REPORTING LOGIC & TEMPLATE SELECTION
+    switch (dashboardId) {
+        case 1: // Stock Overview (KPIs and Value)
+            reportData = await getStockOverviewReport();
+            templateName = 'report_stock_overview'; 
+            break;
+            
+        case 2: // Low Stock & Reorder Report
+            reportData = await getLowStockReport();
+            templateName = 'report_low_stock'; 
+            break;
+
+        case 3: // Transaction History Log
+            reportData = await getTransactionHistoryReport();
+            templateName = 'report_transaction_history'; 
+            break;
+
+        case 4: // Inventory Turns & Aged Stock
+            reportData = await getInventoryTurnsReport();
+            templateName = 'report_inventory_turns'; 
+            break;
+
+        case 5: // Vendor Performance Tracking
+            reportData = await getVendorPerformanceReport();
+            templateName = 'report_vendor_performance'; 
+            break;
+
+        case 6: // Location Stock Breakdown
+            reportData = await getLocationBreakdownReport();
+            templateName = 'report_location_breakdown';
+            break;
+
+        default:
+            return res.redirect('/?message=Invalid dashboard ID.&status=error');
+    }
+
+    if (reportData && reportData.success === false) {
+        return res.redirect(`/?message=${encodeURIComponent(reportData.message)}&status=error`);
+    }
+    
+    // Render the report using the wrapper container and the selected template partial
+    res.render('dashboard_container', {
+        title: title,
+        showSidebar: true, 
+        dashboardNumber: dashboardId,
+        reportData: reportData, 
+        reportTemplate: templateName
     });
 });
 
@@ -155,6 +194,11 @@ app.post('/api/receive', requireLogin, async (req, res) => {
     const formData = req.body;
     const result = await createReceiving(formData);
     
+    // 🚨 AUTOMATION TRIGGER: Check stock and send email immediately after a successful receipt.
+    if (result.success) {
+        lowStockReport(); // Triggers external email/notification logic
+    }
+
     res.redirect(`/?message=${encodeURIComponent(result.message)}&status=${result.success ? 'success' : 'error'}`);
 });
 
@@ -173,6 +217,10 @@ app.post('/api/issue', requireLogin, async (req, res) => {
     const { sku, quantity } = req.body;
     const result = await issueStock(sku, quantity);
     
+    // 🚨 AUTOMATION TRIGGER: Check stock and send email immediately after a successful issue.
+    if (result.success) {
+        lowStockReport(); // Triggers external email/notification logic
+    } 
     res.redirect(`/?message=${encodeURIComponent(result.message)}&status=${result.success ? 'success' : 'error'}`);
 });
 
@@ -180,5 +228,17 @@ app.post('/api/issue', requireLogin, async (req, res) => {
 // 6. Start the server
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
-    //console.log(`Access at http://localhost:${port}`);
+    
+    // 🚨 STARTUP AUTOMATION: Run Low Stock Report on Server Startup 🚨
+    lowStockReport(); 
 });
+
+// Export all reporting functions
+module.exports = {
+    getStockOverviewReport,
+    getLowStockReport,
+    getTransactionHistoryReport,
+    getInventoryTurnsReport,
+    getVendorPerformanceReport,
+    getLocationBreakdownReport,
+};

@@ -1,0 +1,99 @@
+<%# report_stock_overview.ejs - Complete and Corrected %>
+
+<h3>Stock Overview: <%= title %></h3>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <h4>Total Inventory Value</h4>
+        <p class="kpi-value">$<%= reportData.totalInventoryValue %></p>
+    </div>
+    <div class="kpi-card">
+        <h4>Number of Items (SKUs)</h4>
+        <p class="kpi-value"><%= reportData.data ? reportData.data.length : 0 %></p>
+    </div>
+    <div class="kpi-card">
+        <h4>Low Stock Items</h4>
+        <p class="kpi-value warning-value"><%= reportData.data ? reportData.data.filter(i => i.quantity < i.reorderPoint).length : 0 %></p>
+    </div>
+</div>
+
+<div class="chart-section">
+    <h4>Inventory Value Breakdown by Location</h4>
+    
+    <% if (reportData && reportData.locationChartData && reportData.locationChartData.length > 0) { %>
+        <div class="chart-container" style="max-width: 500px; max-height: 500px;"></div>
+        <%# Placeholder for Chart Rendering Logic (Assumes you are using a library like Chart.js) %>
+        <canvas id="locationValueChart"></canvas>
+        
+        <script>
+            // Data passed from Node.js reportData.locationChartData
+            const chartData = JSON.parse('<%- JSON.stringify(reportData.locationChartData) %>');
+            const labels = chartData.map(d => d.label);
+            const values = chartData.map(d => d.value);
+
+            // Basic Chart.js structure to display the data
+            const ctx = document.getElementById('locationValueChart').getContext('2d');
+            const locationChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Value by Location',
+                        data: values,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)',
+                            'rgba(54, 162, 235, 0.8)',
+                            'rgba(255, 206, 86, 0.8)',
+                            'rgba(75, 192, 192, 0.8)',
+                            'rgba(153, 102, 255, 0.8)',
+                            'rgba(255, 159, 64, 0.8)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+
+                    
+                   
+
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: false }
+                    }
+                }
+            });
+        </script>
+    <% } else { %>
+        <p>No location breakdown data available for charting.</p>
+    <% } %>
+</div>
+
+<hr>
+
+<h4>Detailed Inventory List</h4>
+<% if (reportData && reportData.data && reportData.data.length > 0) { %>
+    <table class="generic-table inventory-table">
+        <thead>
+            <tr>
+                <%# Headers are dynamically created from the keys of the first data item %>
+                <% Object.keys(reportData.data[0]).forEach(key => { %>
+                    <th><%= key %></th>
+                <% }); %>
+            </tr>
+        </thead>
+        <tbody>
+            <% reportData.data.forEach(item => { %>
+                <tr class="<%= (item.quantity < item.reorderPoint) ? 'low-stock-row' : '' %>">
+                    <%# Values are dynamically inserted based on key order from the header %>
+                    <% Object.values(item).forEach(value => { %>
+                        <td><%= value %></td>
+                    <% }); %>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+<% } else { %>
+    <p class="no-data-message">No stock data available to display.</p>
+<% } %>

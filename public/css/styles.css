@@ -1,0 +1,102 @@
+/* --- FORM STYLING IMPROVEMENTS --- */
+
+/* General Form Container */
+.inventory-form {
+    max-width: 800px; /* Limits the form width */
+    margin: 20px auto;
+    padding: 30px;
+    background-color: #f8f8f8; /* Light background for contrast */
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Use a grid layout for input fields (Creates a two-column layout) */
+.form-grid {
+    display: grid;
+    /* Create two columns of equal size, minimum 300px wide */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px 40px; 
+    margin-bottom: 30px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column; /* Stack label on top of input */
+}
+
+.form-group label {
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #333;
+    font-size: 0.95em;
+}
+
+.form-group input {
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1em;
+    transition: border-color 0.2s;
+}
+
+.form-group input:focus {
+    border-color: #007bff; /* Highlight on focus */
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Action Buttons */
+.form-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+/* Button Styles */
+.btn-primary {
+    background-color: #28a745; /* Green for Submit */
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: #1e7e34;
+}
+
+.btn-secondary {
+    background-color: #6c757d; /* Gray for Cancel/Back */
+    color: white;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-align: center;
+    transition: background-color 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+/* --- Chart Size Control --- */
+
+.chart-container {
+    /* Set a maximum width for the chart area */
+    max-width: 500px; 
+    /* Optionally, constrain the height */
+    max-height: 500px; 
+    /* Ensure the chart adapts within its boundaries */
+    margin: 20px auto; /* Centers the chart */
+}
+
+/* Ensure the canvas element inside the container scales correctly */
+/*.chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}*/

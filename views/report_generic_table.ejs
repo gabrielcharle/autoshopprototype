@@ -1,0 +1,49 @@
+<%# report_generic_table.ejs - FINAL CORRECTED VERSION %>
+
+<h3><%= title %></h3>
+<p>Displaying data for <%= reportTemplate %>.</p>
+
+<table class="generic-table">
+    <thead>
+        <tr>
+            <% if (reportData && reportData.data && reportData.data.length > 0) { %>
+                <% 
+                    // Use Object.keys() on the first item to get all column headers
+                    // The 'fields' property is NOT used, as data is mapped to plain objects in reporting_logic.js
+                    Object.keys(reportData.data[0]).forEach(key => { 
+                %>
+                    <th><%= key %></th>
+                <% }); %>
+            <% } else if (reportData && reportData.metrics && reportData.metrics.length > 0) { %>
+                <% Object.keys(reportData.metrics[0]).forEach(key => { %>
+                    <th><%= key %></th>
+                <% }); %>
+            <% } else { %>
+                <th>No Data Available</th>
+            <% } %>
+        </tr>
+    </thead>
+    <tbody>
+        <% if (reportData && reportData.data && reportData.data.length > 0) { %>
+            <% reportData.data.forEach(item => { %>
+                <tr>
+                    <% 
+                        // Iterate over the *values* of the plain object
+                        // Note: Airtable data is now an array of plain objects, no longer needs item.fields
+                        Object.values(item).forEach(value => { 
+                    %>
+                        <td><%= Array.isArray(value) ? value.join(', ') : value %></td>
+                    <% }); %>
+                </tr>
+            <% }); %>
+        <% } else if (reportData && reportData.metrics && reportData.metrics.length > 0) { %>
+            <% reportData.metrics.forEach(item => { %>
+                <tr>
+                    <% Object.values(item).forEach(value => { %>
+                        <td><%= value %></td>
+                    <% }); %>
+                </tr>
+            <% }); %>
+        <% } %>
+    </tbody>
+</table>

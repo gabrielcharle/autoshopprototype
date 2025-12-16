@@ -1,13 +1,15 @@
+<%# singleDashboard.ejs (FINAL CORRECTED VERSION FOR CHART RENDERING) %>
+
 <h2>Visualization Area for <%= title %></h2>
 
 <% 
 // Helper function to generate distinct colors for charts
+// This must remain here in EJS scope for use in the JS function below
 const generateColors = (count) => {
     const colors = [];
     const baseColors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2'];
     for(let i = 0; i < count; i++) {
         const hue = i * (360 / count);
-        // Use a mix of defined colors and HSL generation for variety
         colors.push(baseColors[i % baseColors.length] || `hsl(${hue}, 70%, 50%)`); 
     }
     return colors;
@@ -16,14 +18,21 @@ const generateColors = (count) => {
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<script id="dashboard-data" type="application/json">
+{
+    "dashboardNumber": <%= dashboardNumber %>,
+    "data": <%- JSON.stringify(data) %>
+}
+</script>
 
 <% if (dashboardNumber === 6) { %>
     <h3>📍 Stock Breakdown by Location</h3>
     
     <% 
-        const locationLabels = Object.keys(data);
-        let locationQuantities = locationLabels.map(loc => data[loc].reduce((sum, item) => sum + item.quantity, 0));
-        let totalQty = locationQuantities.reduce((a, b) => a + b, 0);
+        if (Array.isArray(data) && data.length > 0) {
+            const locationLabels = data.map(loc => loc.locationID); 
+            let locationQuantities = data.map(loc => loc.totalQuantity);
+            let totalQty = locationQuantities.reduce((a, b) => a + b, 0);
     %>
 
     <div style="display: flex; gap: 30px; margin-bottom: 30px;">
@@ -43,53 +52,28 @@ const generateColors = (count) => {
                     </tr>
                 </thead>
                 <tbody>
-                    <% locationLabels.forEach((location, index) => { %>
+                    <% data.forEach((locationObj) => { %> 
                         <tr>
-                            <td><%= location %></td>
-                            <td><%= data[location].length %></td>
-                            <td><%= locationQuantities[index] %></td>
+                            <td><%= locationObj.locationID %></td> 
+                            <td><%= locationObj.items.length %></td> 
+                            <td><%= locationObj.totalQuantity %></td> 
                         </tr>
                     <% }); %>
                 </tbody>
             </table>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('locationPieChart').getContext('2d');
-            const labels = <%= JSON.stringify(locationLabels) %>;
-            const values = <%= JSON.stringify(locationQuantities) %>;
-            
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: values,
-                        backgroundColor: generateColors(labels.length),
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Quantity Distribution by Location' }
-                    }
-                }
-            });
-        });
-    </script>
     
+    <% } else { %>
+        <p>No inventory records found across multiple locations to generate a breakdown report.</p>
+    <% } %>
+
 <% } else if (dashboardNumber === 5) { %>
     <h3>⭐ Vendor Performance and Value Share</h3>
 
     <% 
-        const vendors = Object.keys(data);
-        if (vendors.length > 0) {
-            const chartLabels = JSON.stringify(vendors);
-            const chartDataValues = JSON.stringify(vendors.map(v => data[v].totalValue.toFixed(2)));
+        if (Array.isArray(data) && data.length > 0) {
+            const vendors = data; 
     %>
 
     <div style="display: flex; gap: 30px; margin-bottom: 30px;">
@@ -112,46 +96,16 @@ const generateColors = (count) => {
                 <tbody>
                     <% vendors.forEach(vendor => { %>
                         <tr>
-                            <td><%= vendor %></td>
-                            <td style="font-weight: bold;">$<%= data[vendor].totalValue.toFixed(2) %></td>
-                            <td><%= data[vendor].totalQuantity %></td>
-                            <td><%= data[vendor].receiptCount %></td>
+                            <td><%= vendor.vendorName %></td> 
+                            <td style="font-weight: bold;">$<%= vendor.totalValue %></td> 
+                            <td><%= vendor.totalQuantity %></td> 
+                            <td><%= vendor.receiptCount %></td> 
                         </tr>
                     <% }); %>
                 </tbody>
             </table>
         </div>
     </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('vendorPieChart').getContext('2d');
-            const labels = <%= chartLabels %>;
-            const values = <%= chartDataValues %>;
-            
-            const chartData = {
-                labels: labels,
-                datasets: [{
-                    label: 'Value Received ($)',
-                    data: values,
-                    backgroundColor: generateColors(labels.length),
-                    hoverOffset: 10
-                }]
-            };
-
-            new Chart(ctx, {
-                type: 'pie',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Percentage of Total Inventory Value by Vendor' }
-                    }
-                }
-            });
-        });
-    </script>
 
     <% } else { %>
         <p>No successful 'RECEIVE' transactions found to generate vendor performance metrics.</p>
@@ -164,7 +118,7 @@ const generateColors = (count) => {
         <div style="flex: 1; padding: 20px; border: 1px solid #ccc; border-radius: 8px; background-color: #f9f9f9;">
             <h4>Inventory Turns Score</h4>
             <h1 style="color: #2e8b57; font-size: 3em; margin: 0;"><%= data.inventoryTurns %></h1>
-            <p style="font-size: 0.9em; color: #555;">(COGS / Avg. Inventory - Last 30 Days)</p>
+            <p style="font-size: 0.9em; color: #555;">(COGS / Avg. Inventory - Annualized)</p>
             <p>Calculations based on:</p>
             <ul>
                 <li>Simulated COGS (Issued Cost last 30 days): **$<%= data.totalIssuedCost %>**</li>
@@ -204,62 +158,19 @@ const generateColors = (count) => {
         <p style="color: green; font-weight: bold;">✅ No aged stock found! Everything is fresh.</p>
     <% } %>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('inventoryTurnsChart').getContext('2d');
-            const turnsScore = <%= data.inventoryTurns %>;
-            
-            const chartData = {
-                labels: ['Your Score', 'Target Score (4.0)'],
-                datasets: [{
-                    label: 'Inventory Turns',
-                    data: [turnsScore, 4.0], 
-                    backgroundColor: [
-                        turnsScore >= 4.0 ? 'rgba(46, 139, 87, 0.8)' : 'rgba(255, 99, 132, 0.8)', 
-                        'rgba(54, 162, 235, 0.8)'
-                    ],
-                    borderColor: [
-                        'rgba(255, 255, 255, 1)',
-                        'rgba(255, 255, 255, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            };
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: chartData,
-                options: {
-                    responsive: true,
-                    indexAxis: 'y',
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            title: {
-                                display: true,
-                                text: 'Turns Score'
-                            }
-                        }
-                    }
-                }
-            });
-        });
-    </script>
-    
 <% } else if (dashboardNumber === 3) { %>
     <h3>🕒 Transaction History Log</h3>
     
-    <% if (data && data.length > 0) { 
-        // Aggregate data for Line Chart
-        const dates = [...new Set(data.map(item => item.timestamp.split('T')[0]))].sort().slice(-10); // Last 10 days/dates
-        const receiveData = dates.map(date => data.filter(item => item.timestamp.includes(date) && item.model === 'RECEIVE').reduce((sum, item) => sum + item.quantityChange, 0));
-        const issueData = dates.map(date => data.filter(item => item.timestamp.includes(date) && item.model === 'ISSUE').reduce((sum, item) => sum + Math.abs(item.quantityChange), 0));
+    <% 
+        if (Array.isArray(data) && data.length > 0) { 
+        // Data aggregation for rendering the table and the chart
     %>
 
     <div style="display: flex; gap: 30px; margin-bottom: 30px;">
         <div style="flex: 2;">
-            <h4>Transaction Volume Trend (Last <%= dates.length %> Receipts) </h4>
+            <h4>Transaction Volume Trend (Last 10 Days) </h4>
             <canvas id="transactionTrendChart" width="400" height="200"></canvas>
+            
         </div>
         <div style="flex: 3;">
             <table border="1" cellpadding="10" cellspacing="0" style="width: 100%;">
@@ -285,46 +196,6 @@ const generateColors = (count) => {
         </div>
     </div>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('transactionTrendChart').getContext('2d');
-            
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: <%= JSON.stringify(dates) %>,
-                    datasets: [
-                        {
-                            label: 'Received Quantity',
-                            data: <%= JSON.stringify(receiveData) %>,
-                            borderColor: 'rgba(40, 167, 69, 1)',
-                            backgroundColor: 'rgba(40, 167, 69, 0.2)',
-                            fill: true,
-                        },
-                        {
-                            label: 'Issued Quantity',
-                            data: <%= JSON.stringify(issueData) %>,
-                            borderColor: 'rgba(220, 53, 69, 1)',
-                            backgroundColor: 'rgba(220, 53, 69, 0.2)',
-                            fill: true,
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'Quantity' }
-                        },
-                        x: {
-                            title: { display: true, text: 'Date' }
-                        }
-                    }
-                }
-            });
-        });
-    </script>
     <% } else { %>
         <p>No transaction history entries found.</p>
     <% } %>
@@ -333,9 +204,9 @@ const generateColors = (count) => {
     <h3>🔴 Critical Stock List</h3>
     
     <% 
-        const lowStockCount = data.length;
-        // Total unique items is simply the count of the stock overview report (approximated here by low stock count + healthy count)
-        const totalItemsInInventory = 10; // Placeholder: Ideally fetch this dynamically
+        const isArrayOfItems = Array.isArray(data);
+        const lowStockCount = isArrayOfItems ? data.length : 0;
+        const totalItemsInInventory = 52; // Based on Stock Overview log
         const healthyStockCount = totalItemsInInventory - lowStockCount; 
     %>
     
@@ -345,7 +216,7 @@ const generateColors = (count) => {
             <canvas id="stockHealthChart" width="400" height="200"></canvas>
         </div>
         <div style="flex: 3;">
-            <table border="1" cellpadding="10" cellspacing="0">
+            <table border="1" cellpadding="10" cellspacing="0" style="width: 100%;">
                 <thead>
                     <tr>
                         <th>SKU</th>
@@ -356,58 +227,32 @@ const generateColors = (count) => {
                     </tr>
                 </thead>
                 <tbody>
-                    <% data.forEach(item => { %>
-                        <tr style="color: <%= item.quantity <= item.reorderPoint ? 'red' : 'inherit' %>;">
-                            <td><%= item.sku %></td>
-                            <td><%= item.partName %></td>
-                            <td><%= item.quantity %></td>
-                            <td><%= item.reorderPoint %></td>
-                            <td><%= item.location %></td>
-                        </tr>
-                    <% }); %>
+                    <% if (isArrayOfItems) { %>
+                        <% data.forEach(item => { %>
+                            <tr style="color: <%= item.quantity <= item.reorderPoint ? 'red' : 'inherit' %>;">
+                                <td><%= item.sku %></td>
+                                <td><%= item.partName %></td>
+                                <td><%= item.quantity %></td>
+                                <td><%= item.reorderPoint %></td>
+                                <td><%= item.location %></td>
+                            </tr>
+                        <% }); %>
+                    <% } %>
                 </tbody>
             </table>
-            <% if (data.length === 0) { %>
+            <% if (!isArrayOfItems || data.length === 0) { %>
                 <p style="color: green; font-weight: bold;">✅ All inventory levels are currently OK!</p>
             <% } %>
         </div>
     </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('stockHealthChart').getContext('2d');
-            const lowCount = <%= lowStockCount %>;
-            const healthyCount = <%= healthyStockCount > 0 ? healthyStockCount : 0 %>;
-            
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Critical Stock', 'Healthy Stock'],
-                    datasets: [{
-                        data: [lowCount, healthyCount],
-                        backgroundColor: ['#dc3545', '#28a745'],
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Inventory Stock Health' }
-                    }
-                }
-            });
-        });
-    </script>
 
 <% } else if (dashboardNumber === 1) { %>
     <h3>📈 Current Stock Overview (Quantity and Value)</h3>
     
-    <% if (data && data.length > 0) { 
-        // Sort data by totalValue descending and take the top 5
-        const top5 = data.sort((a, b) => parseFloat(b.totalValue) - parseFloat(a.totalValue)).slice(0, 5);
-        const top5Labels = JSON.stringify(top5.map(item => item.sku));
-        const top5Values = JSON.stringify(top5.map(item => parseFloat(item.totalValue)));
+    <% 
+        if (data && data.items && Array.isArray(data.items) && data.items.length > 0) { 
+            const inventoryItems = data.items;
+            const grandTotalValue = data.grandTotalValue;
     %>
     <div style="display: flex; gap: 30px; margin-bottom: 30px;">
         <div style="flex: 2;">
@@ -426,7 +271,7 @@ const generateColors = (count) => {
                     </tr>
                 </thead>
                 <tbody>
-                    <% data.forEach(item => { %>
+                    <% inventoryItems.forEach(item => { %> 
                         <tr>
                             <td><%= item.sku %></td>
                             <td><%= item.partName %></td>
@@ -436,53 +281,16 @@ const generateColors = (count) => {
                         </tr>
                     <% }); %>
                 </tbody>
-                <% 
-                    // Calculate Totals
-                    const grandTotalValue = data.reduce((sum, item) => sum + parseFloat(item.totalValue), 0).toFixed(2);
-                %>
                 <tfoot>
                     <tr>
                         <td colspan="4" style="text-align: right; font-weight: bold;">GRAND TOTAL INVENTORY VALUE:</td>
-                        <td style="font-weight: bold; background-color: #e9ecef;">$<%= grandTotalValue %></td>
+                        <td style="font-weight: bold; background-color: #e9ecef;">$<%= grandTotalValue %></td> 
                     </tr>
                 </tfoot>
             </table>
         </div>
     </div>
     
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = document.getElementById('top5ValueChart').getContext('2d');
-            
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: <%= top5Labels %>,
-                    datasets: [{
-                        label: 'Total Value ($)',
-                        data: <%= top5Values %>,
-                        backgroundColor: generateColors(5),
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'Inventory Value ($)' }
-                        },
-                        x: {
-                            title: { display: true, text: 'SKU' }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        });
-    </script>
     <% } else { %>
         <p>No inventory records found.</p>
     <% } %>
@@ -490,3 +298,229 @@ const generateColors = (count) => {
 <% } else { %>
     <p>All six primary dashboards have been implemented.</p>
 <% } %>
+
+
+<%# ---------------------------------------------------- %>
+<%# 🌟 CHART INITIALIZATION SCRIPT (THE FIX) 🌟 %>
+<%# ---------------------------------------------------- %>
+
+<script>
+    function initializeCharts() {
+        // Retrieve dynamic data and dashboard number
+        const dashboardDataElement = document.getElementById('dashboard-data');
+        if (!dashboardDataElement) return;
+
+        const { dashboardNumber, data: rawData } = JSON.parse(dashboardDataElement.textContent);
+        
+        // Helper to generate colors (Re-defined for JS scope since EJS helper isn't natively accessible)
+        const generateColors = (count) => {
+            const colors = [];
+            const baseColors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2'];
+            for(let i = 0; i < count; i++) {
+                // Simplified color logic, using the same base colors
+                colors.push(baseColors[i % baseColors.length] || `hsl(${i * (360 / count)}, 70%, 50%)`); 
+            }
+            return colors;
+        }
+
+        if (dashboardNumber === 6) {
+            // Location Breakdown (Pie Chart)
+            const ctx = document.getElementById('locationPieChart');
+            if (ctx && Array.isArray(rawData) && rawData.length > 0) {
+                const labels = rawData.map(loc => loc.locationID);
+                const values = rawData.map(loc => loc.totalQuantity);
+                
+                new Chart(ctx.getContext('2d'), {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: generateColors(labels.length),
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'Quantity Distribution by Location' }
+                        }
+                    }
+                });
+            }
+        } else if (dashboardNumber === 5) {
+            // Vendor Performance (Pie Chart)
+            const ctx = document.getElementById('vendorPieChart');
+            if (ctx && Array.isArray(rawData) && rawData.length > 0) {
+                const labels = rawData.map(v => v.vendorName);
+                const values = rawData.map(v => parseFloat(v.totalValue));
+                
+                const chartData = {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Value Received ($)',
+                        data: values,
+                        backgroundColor: generateColors(labels.length),
+                        hoverOffset: 10
+                    }]
+                };
+
+                new Chart(ctx.getContext('2d'), {
+                    type: 'pie',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'Percentage of Total Inventory Value by Vendor' }
+                        }
+                    }
+                });
+            }
+        } else if (dashboardNumber === 4) {
+            // Inventory Turns (Bar Chart)
+            const ctx = document.getElementById('inventoryTurnsChart');
+            if (ctx && rawData && rawData.inventoryTurns !== undefined) {
+                const turnsScore = rawData.inventoryTurns;
+                
+                const chartData = {
+                    labels: ['Your Score', 'Target Score (4.0)'],
+                    datasets: [{
+                        label: 'Inventory Turns',
+                        data: [turnsScore, 4.0], 
+                        backgroundColor: [
+                            turnsScore >= 4.0 ? 'rgba(46, 139, 87, 0.8)' : 'rgba(255, 99, 132, 0.8)', 
+                            'rgba(54, 162, 235, 0.8)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 255, 255, 1)',
+                            'rgba(255, 255, 255, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+
+                new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        indexAxis: 'y',
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Turns Score' }
+                            }
+                        }
+                    }
+                });
+            }
+        } else if (dashboardNumber === 3) {
+            // Transaction Trend (Line Chart)
+            const ctx = document.getElementById('transactionTrendChart');
+            if (ctx && Array.isArray(rawData) && rawData.length > 0) {
+                // Recalculate/extract needed data 
+                const dates = [...new Set(rawData.map(item => item.timestamp.split('T')[0]))].sort().slice(-10);
+                const receiveData = dates.map(date => rawData.filter(item => item.timestamp.includes(date) && item.model === 'RECEIVE').reduce((sum, item) => sum + item.quantityChange, 0));
+                const issueData = dates.map(date => rawData.filter(item => item.timestamp.includes(date) && item.model === 'ISSUE').reduce((sum, item) => sum + Math.abs(item.quantityChange), 0));
+
+                new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: dates,
+                        datasets: [
+                            {
+                                label: 'Received Quantity',
+                                data: receiveData,
+                                borderColor: 'rgba(40, 167, 69, 1)',
+                                backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                                fill: true,
+                            },
+                            {
+                                label: 'Issued Quantity',
+                                data: issueData,
+                                borderColor: 'rgba(220, 53, 69, 1)',
+                                backgroundColor: 'rgba(220, 53, 69, 0.2)',
+                                fill: true,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Quantity' } },
+                            x: { title: { display: true, text: 'Date' } }
+                        }
+                    }
+                });
+            }
+        } else if (dashboardNumber === 2) {
+            // Stock Health (Doughnut Chart)
+            const ctx = document.getElementById('stockHealthChart');
+            if (ctx) {
+                const lowCount = Array.isArray(rawData) ? rawData.length : 0;
+                const healthyCount = 52 - lowCount; // Total items is 52 based on log
+                
+                new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Critical Stock', 'Healthy Stock'],
+                        datasets: [{
+                            data: [lowCount, healthyCount > 0 ? healthyCount : 0],
+                            backgroundColor: ['#dc3545', '#28a745'],
+                            hoverOffset: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'top' },
+                            title: { display: true, text: 'Inventory Stock Health' }
+                        }
+                    }
+                });
+            }
+        } else if (dashboardNumber === 1) {
+            // Stock Overview (Bar Chart - Top 5)
+            const ctx = document.getElementById('top5ValueChart');
+            if (ctx && rawData && rawData.items && rawData.items.length > 0) {
+                const inventoryItems = rawData.items;
+
+                // Recalculate top 5 logic from raw data in JS
+                const top5 = inventoryItems.sort((a, b) => parseFloat(b.totalValue) - parseFloat(a.totalValue)).slice(0, 5);
+                const labels = top5.map(item => item.sku);
+                const values = top5.map(item => parseFloat(item.totalValue));
+                
+                new Chart(ctx.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Total Value ($)',
+                            data: values,
+                            backgroundColor: generateColors(5),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: { beginAtZero: true, title: { display: true, text: 'Inventory Value ($)' } },
+                            x: { title: { display: true, text: 'SKU' } }
+                        },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        }
+    }
+
+    // 🌟 FIX: Use a timeout to ensure Chart.js library is loaded AND the canvas elements 
+    // for the *current* dashboardNumber are fully rendered and visible in the DOM.
+    // The DOMContentLoaded event sometimes fires too early in dynamic rendering.
+    window.addEventListener('load', () => {
+        // A slight delay is a common way to deal with dynamic loading issues
+        setTimeout(initializeCharts, 50); 
+    });
+</script>

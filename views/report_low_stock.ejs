@@ -1,0 +1,82 @@
+<%# report_low_stock.ejs %>
+
+<h3>Low Stock & Reorder Report: <%= title %></h3>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <h4>Items Below Reorder Point</h4>
+        <p class="kpi-value warning-value"><%= reportData.criticalCount %></p>
+    </div>
+    <div class="kpi-card">
+        <h4>Total Items to Review (Top 100)</h4>
+        <p class="kpi-value"><%= reportData.metrics ? reportData.metrics.length : 0 %></p>
+    </div>
+</div>
+
+<div class="chart-section" style="margin-top: 20px;">
+    <h4>Inventory Status Breakdown</h4>
+    
+    <% if (reportData && reportData.lowStockChartData && reportData.lowStockChartData.length > 0) { %>
+        <div class="chart-container" style="width: 400px; height: 400px; margin: 0 auto;"> 
+            <canvas id="lowStockChart"></canvas>
+        </div>
+        
+        <script>
+            const chartData = JSON.parse('<%- JSON.stringify(reportData.lowStockChartData) %>');
+            const labels = chartData.map(d => d.label);
+            const values = chartData.map(d => d.value);
+
+            const ctx = document.getElementById('lowStockChart').getContext('2d');
+            const lowStockChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Stock Status',
+                        data: values,
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.8)', // Red for Critical Items
+                            'rgba(75, 192, 192, 0.8)' // Teal for Items OK (Placeholder)
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' }
+                    }
+                }
+            });
+        </script>
+    <% } else { %>
+        <p>No status breakdown data available for charting.</p>
+    <% } %>
+</div>
+
+<hr>
+
+<h4>Detailed Low Stock List</h4>
+<% if (reportData && reportData.metrics && reportData.metrics.length > 0) { %>
+    <table class="generic-table inventory-table">
+        <thead>
+            <tr>
+                <% Object.keys(reportData.metrics[0]).forEach(key => { %>
+                    <th><%= key %></th>
+                <% }); %>
+            </tr>
+        </thead>
+        <tbody>
+            <% reportData.metrics.forEach(item => { %>
+                <tr>
+                    <% Object.values(item).forEach(value => { %>
+                        <td><%= value %></td>
+                    <% }); %>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+<% } else { %>
+    <p class="no-data-message">Congratulations! All monitored items are above reorder point.</p>
+<% } %>

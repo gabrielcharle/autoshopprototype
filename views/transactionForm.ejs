@@ -1,22 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title><%= title %></title>
-</head>
-<body>
-<h2><%= title %></h2>
-<form action="<%= formAction %>" method="POST">
-    <% fields.forEach(field => { %>
-        <label for="<%= field %>"><%= field.charAt(0).toUpperCase() + field.slice(1) %>:</label>
-        <% 
-            let type = 'text';
-            if (field === 'quantity' || field === 'reorderPoint' || field === 'unitCost') {
-                type = 'number';
-            }
-        %>
-        <input type="<%= type %>" id="<%= field %>" name="<%= field %>" required><br><br>
-    <% }); %>
-    <button type="submit"><%= title %></button>
-</form>    
-</body>
-</html>
+<%# transactionForm.ejs %>
+<div class="main-content-area">
+    <h2><%= title %></h2>
+    
+    <% if (typeof status !== 'undefined' && status) { %>
+        <p class="<%= status %>-message"><%= message %></p>
+    <% } %>
+
+    <form method="POST" action="<%= formAction %>" class="inventory-form">
+        
+        <div class="form-grid">
+            <% fields.forEach(field => { %>
+                <% 
+                    let type = 'text';
+                    let step = '';
+                    let min = '';
+                    
+                    // Logic to determine input type and validation attributes
+                    if (field === 'quantity' || field === 'reorderPoint') {
+                        type = 'number';
+                        min = '0';
+                    } else if (field === 'unitCost') {
+                        type = 'number';
+                        min = '0';
+                        step = '0.01'; // Allows for decimal values
+                    }
+
+                    // Function to convert camelCase to Title Case 
+                    const displayLabel = field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1').trim();
+                %>
+                
+                <div class="form-group">
+                    <label for="<%= field %>"><%= displayLabel %>:</label>
+                    
+                    <input 
+                        type="<%= type %>" 
+                        id="<%= field %>" 
+                        name="<%= field %>" 
+                        placeholder="Enter <%= displayLabel %>"
+                        <%= step ? 'step="' + step + '"' : '' %>
+                        <%= min ? 'min="' + min + '"' : '' %>
+                        required
+                    >
+                </div>
+            <% }); %>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn-primary">Submit <%= title %></button>
+            <a href="/" class="btn-secondary">Cancel and Return to Menu</a>
+        </div>
+    </form>
+</div>

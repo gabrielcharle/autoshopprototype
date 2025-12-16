@@ -1,0 +1,39 @@
+<%# report_transaction_history.ejs - FINAL WORKING VERSION %>
+
+<h3>Transaction History Log: <%= title %></h3>
+
+<p>This report logs all stock movements (Receiving and Issuing) over time.</p>
+
+<% if (reportData && reportData.data && reportData.data.length > 0) { %>
+    <table class="generic-table inventory-table">
+        <thead>
+            <tr>
+                <%# Headers are dynamically created from the keys of the first data item (Date, Type, SKU, etc.) %>
+                <% Object.keys(reportData.data[0]).forEach(key => { %>
+                    <th><%= key %></th>
+                <% }); %>
+            </tr>
+        </thead>
+        <tbody>
+            <% reportData.data.forEach(item => { %>
+                <%# Uses confirmed uppercase transaction types and the correct property name (item.Type) %>
+                <tr class="<%= item.Type === 'ISSUE' ? 'issue-row' : item.Type === 'RECEIVE' ? 'receive-row' : '' %>">
+                    <%# Values are iterated over the plain object %>
+                    <% Object.values(item).forEach(value => { %>
+                        <td>
+                            <% if (Array.isArray(value)) { %>
+                                <%= value.join(', ') %>
+                            <% } else { %>
+                                <%= value %>
+                            <% } %>
+                        </td>
+                    <% }); %>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+<% } else { %>
+    <p class="no-data-message" style="padding: 15px; background-color: #f0f0f0; border: 1px solid #ccc; border-radius: 4px;">
+        No transaction history found.
+    </p>
+<% } %>

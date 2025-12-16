@@ -1,12 +1,12 @@
-// airtable_utils.js (SIMPLIFIED EXPORT)
+// airtable_utils.js
 
 const Airtable = require('airtable');
 
-// Ensure you use the token variable name exactly as it is in your .env
-const AIRTABLE_TOKEN = process.env.AIRTABLE_API_TOKEN; 
-const AIRTABLE_BASE = process.env.AIRTABLE_BASE_ID;
+// Initialize the Airtable base once and store it in a globally accessible object.
+// This bypasses module loading issues (circular dependency) that were causing the error.
+global.airtableBase = new Airtable({ 
+    apiKey: process.env.AIRTABLE_API_KEY 
+}).base(process.env.AIRTABLE_BASE_ID);
 
-const base = new Airtable({ apiKey: AIRTABLE_TOKEN }).base(AIRTABLE_BASE);
-
-// Export the base object directly
-module.exports = base;
+// This file now only serves to initialize the connection globally.
+// No explicit module.exports is strictly needed for the 'base' function itself.

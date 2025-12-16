@@ -1,0 +1,84 @@
+<%# report_vendor_performance.ejs (Dashboard 5: FINAL CORRECTED VERSION) %>
+
+<h3>Vendor Performance Tracking: <%= title %></h3>
+
+<p>Analyzes delivery, quality, and cost metrics to determine overall vendor performance scores.</p>
+
+<div class="chart-container" style="width: 90%; max-width: 900px; height: 450px; margin: 20px 0;">
+    <canvas id="vendorPerformanceChart"></canvas>
+</div>
+
+<h4 style="margin-top: 30px;">Detailed Vendor Scores</h4>
+<table class="generic-table vendor-table">
+    <thead>
+        <tr>
+            <th>Vendor Name</th>
+            <th>Delivery Score (Avg)</th>
+            <th>Quality Score (Avg)</th>
+            <th>Cost Adherence</th>
+            <th>Overall Score</th>
+        </tr>
+    </thead>
+    <tbody>
+        <% if (reportData && reportData.data && reportData.data.length > 0) { %>
+            <% reportData.data.forEach(item => { %>
+                <tr class="<%= item.overallScore >= 4 ? 'good-vendor' : item.overallScore < 2 ? 'bad-vendor' : '' %>">
+                    <td><%= item.vendorName %></td>
+                    <td><%= item.deliveryScore %></td>
+                    <td><%= item.qualityScore %></td>
+                    <td><%= item.costAdherence %></td>
+                    <td style="font-weight: bold;"><%= item.overallScore %></td>
+                </tr>
+            <% }); %>
+        <% } else { %>
+            <tr>
+                <td colspan="5" style="text-align: center;">No vendor performance data available (Check Transaction Log 'RECEIVE' entries).</td>
+            </tr>
+        <% } %>
+    </tbody>
+</table>
+
+<script>
+    <% if (reportData && reportData.data && reportData.data.length > 0) { %>
+        const vendorData = <%- JSON.stringify(reportData.data) %>;
+        
+        const labels = vendorData.map(item => item.vendorName);
+        const overallScores = vendorData.map(item => item.overallScore);
+        
+        const ctx = document.getElementById('vendorPerformanceChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Overall Performance Score (1-5)',
+                    data: overallScores,
+                    backgroundColor: overallScores.map(score => {
+                        if (score >= 4.0) return 'rgba(75, 192, 192, 0.8)'; // Green (Good)
+                        if (score >= 2.5) return 'rgba(255, 206, 86, 0.8)'; // Yellow (Average)
+                        return 'rgba(255, 99, 132, 0.8)'; // Red (Poor)
+                    }),
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 5, // Scores are out of 5
+                        title: { display: true, text: 'Overall Score' }
+                    },
+                    x: { title: { display: true, text: 'Vendor' } }
+                }
+            }
+        });
+    <% } %>
+</script>
+
+<style>
+    .vendor-table tr.good-vendor { background-color: #e6ffe6; }
+    .vendor-table tr.bad-vendor { background-color: #ffe6e6; }
+</style>

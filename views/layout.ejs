@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
     <title>Inventory Management | <%= title %></title>
     <style>
+        /* --- CORE LAYOUT STYLES --- */
         body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f4f9; }
         .header { 
             background-color: #333; color: white; padding: 15px 30px; 
@@ -13,8 +15,6 @@
         .header a { color: white; text-decoration: none; margin-left: 20px; font-weight: bold; }
         .header a:hover { color: #ccc; }
         .main-container { display: flex; min-height: calc(100vh - 60px); }
-        
-        /* Sidebar Styling (Hidden unless on a dashboard page) */
         .sidebar {
             width: 250px; background-color: #e9ecef; padding: 20px; 
             box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1); 
@@ -28,9 +28,50 @@
             color: #007bff; border-bottom: 1px dashed #ccc; 
         }
         .sidebar a:hover { background-color: #d1d8df; }
-
-        /* Main Content Area */
         .content { flex-grow: 1; padding: 30px; }
+        /* Generic Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: white; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); }
+        th, td { border: 1px solid #ddd; padding: 12px 15px; text-align: left; }
+        th { background-color: #007bff; color: white; font-weight: 600; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        tr:hover { background-color: #e0e0e0; }
+
+        /* --- FORM STYLING IMPROVEMENTS (The Grid) --- */
+        .inventory-form { max-width: 800px; margin: 20px auto; padding: 30px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px 40px; margin-bottom: 30px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-weight: 600; margin-bottom: 5px; color: #333; font-size: 0.95em; }
+        .form-group input { padding: 10px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 1em; transition: border-color 0.2s; }
+        .form-group input:focus { border-color: #007bff; outline: none; box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); }
+        .form-actions { display: flex; justify-content: flex-start; gap: 15px; padding-top: 20px; border-top: 1px solid #eee; }
+        .btn-primary { background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
+        .btn-primary:hover { background-color: #1e7e34; }
+        .btn-secondary { background-color: #6c757d; color: white; text-decoration: none; padding: 10px 20px; border-radius: 4px; font-weight: 600; text-align: center; transition: background-color 0.2s; }
+        .btn-secondary:hover { background-color: #5a6268; }
+
+        /* --- BESPOKE LOW STOCK REPORT STYLES (for report_low_stock.ejs) --- */
+        .report-header { margin-bottom: 20px; padding: 15px; border-radius: 5px; }
+        .report-header.low-stock { background-color: #fcebeb; border: 1px solid #dc3545; }
+        .report-header.low-stock h3 { color: #dc3545; margin-top: 0; }
+        .low-stock-table .warning { background-color: #fff3cd; }
+        .low-stock-table .critical { background-color: #f8d7da; }
+        .variance-cell { font-weight: bold; color: #dc3545; }
+        
+        /* --- INVENTORY TURNS KPI STYLES (for report_inventory_turns.ejs) --- */
+        .kpi-grid { display: flex; gap: 20px; margin-bottom: 30px; }
+        .kpi-card { flex: 1; background-color: #ffffff; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); border-left: 5px solid #007bff; }
+        .kpi-card.aged-stock { border-left: 5px solid #dc3545; }
+        .kpi-value { font-size: 2.2em; font-weight: bold; color: #333; margin: 5px 0 5px 0; }
+        .kpi-note { font-size: 0.8em; color: #6c757d; }
+        .aged-row { background-color: #fff3cd; }
+
+        /* --- VENDOR PERFORMANCE STYLES (for report_vendor_performance.ejs) --- */
+        .performance-table tr.good { background-color: #d4edda; }
+        .performance-table tr.moderate { background-color: #fff3cd; }
+        .performance-table tr.poor { background-color: #f8d7da; }
+        .status-cell.good { color: #155724; font-weight: bold; }
+        .status-cell.moderate { color: #856404; font-weight: bold; }
+        .status-cell.poor { color: #721c24; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -57,7 +98,6 @@
             
             <ul>
                 <% 
-                // --- RBAC Sidebar Logic (NEW) ---
                 if (locals.currentUser && locals.ACCESS_MAP) {
                     const userRole = locals.currentUser.role;
                     const allowedDashboards = locals.ACCESS_MAP[userRole] || [];
@@ -65,7 +105,6 @@
                     dashboards.forEach((name, index) => { 
                         const routeNumber = index + 1;
                         
-                        // Check if the current dashboard number is in the allowed list for the user's role
                         if (allowedDashboards.includes(routeNumber)) { 
                 %>
                         <li>
@@ -75,7 +114,6 @@
                         }
                     });
                 }
-                // --- END RBAC Sidebar Logic ---
                 %>
             </ul>
         </aside>

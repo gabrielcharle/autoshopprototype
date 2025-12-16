@@ -1,0 +1,157 @@
+<%# report_inventory_turns.ejs (Dashboard 4: FINAL CORRECTED VERSION) %>
+
+<div class="report-container">
+    <div class="report-header">
+        <h3>Inventory Efficiency Analysis</h3>
+        <p>Key performance indicators for inventory health and operational efficiency.</p>
+    </div>
+
+    <%# KPI Cards (Key for Excellent Appearance) %>
+    <div class="kpi-grid">
+        <div class="kpi-card value-card">
+            <h4>Total Inventory Value</h4>
+            <span class="kpi-metric">$<%= reportData.totalInventoryValue %></span>
+        </div>
+        <div class="kpi-card turns-card">
+            <h4>Inventory Turns (Annualized)</h4>
+            <span class="kpi-metric"><%= reportData.inventoryTurns %>x</span>
+        </div>
+        <div class="kpi-card dio-card">
+            <h4>Days Inventory Outstanding (DIO)</h4>
+            <span class="kpi-metric"><%= reportData.dio %> Days</span>
+        </div>
+        <div class="kpi-card aged-card">
+            <h4>Aged Stock Value (> 30 Days)</h4>
+            <span class="kpi-metric">$<%= reportData.agedStockValue %></span>
+        </div>
+    </div>
+    
+    <%# --- BAR CHART IMPLEMENTATION (The 3rd Chart) --- %>
+    <h4 style="margin-top: 30px;">Inventory Age Breakdown Chart</h4>
+    <div class="chart-container" style="width: 90%; max-width: 800px; height: 400px; margin-bottom: 30px;">
+        <canvas id="inventoryAgeChart"></canvas>
+    </div>
+    
+    <script>
+        <% if (reportData && reportData.data && reportData.data.length > 0) { %>
+            const data = <%- JSON.stringify(reportData.data) %>;
+            
+            // Aggregate data by age category for the bar chart
+            const ageBreakdown = data.reduce((acc, item) => {
+                const category = item.ageCategory;
+                // Assuming we want a simple count of items in each category
+                acc[category] = (acc[category] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = ['0-30 Days', '31-90 Days', '91-180 Days', '180+ Days'];
+            const chartValues = labels.map(label => ageBreakdown[label] || 0);
+
+            const ctx = document.getElementById('inventoryAgeChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Number of Items',
+                        data: chartValues,
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.8)', // Green (Fresh)
+                            'rgba(255, 206, 86, 0.8)', // Yellow
+                            'rgba(255, 159, 64, 0.8)', // Orange
+                            'rgba(255, 99, 132, 0.8)'  // Red (Aged)
+                        ],
+                        borderColor: [
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(255, 159, 64, 1)',
+                            'rgba(255, 99, 132, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        <% } %>
+    </script>
+    
+    <h4 style="margin-top: 30px;">Inventory Age Detail Table</h4>
+    <table class="aged-stock-table">
+        <thead>
+            <tr>
+                <th>SKU</th>
+                <th>Part Name</th>
+                <th>Quantity</th>
+                <th>Age (Days)</th>
+                <th>Last Issued</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% if (reportData && reportData.data && reportData.data.length > 0) { %>
+                <% reportData.data.forEach(item => { %>
+                    <%# --- CORRECTED EJS LOGIC: Runs inside the loop for each item --- %>
+                    <% 
+                        const isAged = item.ageDays > 30; 
+                        let statusClass = isAged ? 'aged' : 'fresh';
+                    %>
+                    <tr class="<%= statusClass %>">
+                        <td><%= item.sku %></td>
+                        <td><%= item.partName %></td>
+                        <td><%= item.quantity %></td>
+                        <td><%= item.ageDays %></td>
+                        <td><%= item.lastIssued %></td>
+                        <td><span class="status-label <%= statusClass %>"><%= isAged ? 'AGED' : 'Fresh' %></span></td>
+                    </tr>
+                <% }); %>
+            <% } else { %>
+                 <tr>
+                    <td colspan="6" style="text-align: center;">No inventory aging data available.</td>
+                </tr>
+            <% } %>
+        </tbody>
+    </table>
+</div>
+
+<style>
+    /* ... (Your original CSS remains here) ... */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    .kpi-card {
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    .kpi-metric {
+        font-size: 2.5em;
+        font-weight: bold;
+        display: block;
+        margin-top: 10px;
+    }
+    .value-card { background-color: #e0f7fa; color: #00bcd4; }
+    .turns-card { background-color: #e8f5e9; color: #4caf50; }
+    .dio-card { background-color: #fff3e0; color: #ff9800; }
+    .aged-card { background-color: #ffebee; color: #f44336; }
+
+    .aged-stock-table tr.aged {
+        background-color: #f8d7da; /* Light Red highlight */
+    }
+    .status-label.aged {
+        padding: 2px 8px;
+        background-color: #dc3545;
+        color: white;
+        border-radius: 4px;
+        font-weight: bold;
+    }
+</style>

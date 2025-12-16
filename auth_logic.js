@@ -1,6 +1,7 @@
-// auth_logic.js
+// auth_logic.js (FINAL CORRECTED VERSION)
 
-const  base  = require('./airtable_utils');
+// FINAL FIX: Access the globally initialized Airtable Base object
+const base = global.airtableBase; 
 const USER_TABLE_NAME = "Users"; // Ensure your table name matches this
 
 /**
@@ -28,7 +29,8 @@ async function lookupUser(email, password) {
         return null; // User not found or password incorrect
 
     } catch (err) {
-        console.error('Error during user lookup:', err.message);
+        // The error message will now be cleaner if an Airtable error occurs (e.g., bad filter)
+        console.error('Error during user lookup:', err.message); 
         return null;
     }
 }
