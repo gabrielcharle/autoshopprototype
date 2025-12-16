@@ -226,12 +226,13 @@ app.post('/api/issue', requireLogin, async (req, res) => {
 
 
 // 6. Start the server
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+/*p.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);*/
     
     // 🚨 STARTUP AUTOMATION: Run Low Stock Report on Server Startup 🚨
     lowStockReport(); 
-});
+    /*
+}); */
 
 // Export all reporting functions
 module.exports = {
@@ -242,3 +243,6 @@ module.exports = {
     getVendorPerformanceReport,
     getLocationBreakdownReport,
 };
+
+// AFTER DEPLOYMENT: Export the app for Vercel and Node.js
+module.exports = app;
