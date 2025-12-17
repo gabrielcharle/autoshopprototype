@@ -19,7 +19,6 @@ require('./airtable_utils');
 
 
 
-const app = express();
 
 // 🚨🚨 CRITICAL FIX: INITIALIZE AIRTABLE BASE FIRST! 🚨🚨
 // This MUST happen before any local module that uses the global.airtableBase variable.
