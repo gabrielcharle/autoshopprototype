@@ -6,17 +6,18 @@ const nodemailer = require('nodemailer');
 const SENDER_EMAIL = process.env.EMAIL_USER;
 const EMAIL_PASSWORD = process.env.EMAIL_PASS; 
 
-// --- Configure the Transporter (REPLACES the 'service: gmail' block) ---
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
-    port: 465,         // Secure SSL port (fixes Render timeout issues)
-    secure: true,      // Required for port 465
+    port: 465,
+    secure: true,
     auth: {
         user: SENDER_EMAIL,
         pass: EMAIL_PASSWORD, 
     },
-    connectionTimeout: 15000, // 15 seconds to allow for cloud network latency
-    socketTimeout: 15000
+    tls: {
+        rejectUnauthorized: false // This helps bypass certain cloud firewall blocks
+    },
+    connectionTimeout: 20000 // Increased to 20 seconds
 });
 
 /**
