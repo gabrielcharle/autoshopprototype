@@ -19,8 +19,7 @@ require('./airtable_utils');
 
 
 
-
-require('dotenv').config();
+const app = express();
 
 // 🚨🚨 CRITICAL FIX: INITIALIZE AIRTABLE BASE FIRST! 🚨🚨
 // This MUST happen before any local module that uses the global.airtableBase variable.
@@ -275,7 +274,7 @@ p.listen(port, () => {
 }); */
 
 // The listen function near the end must use the `port` variable:
-p.listen(port, () => {
+  app.listen(port, () => {
     console.log(`Server is running on port ${port}`); // Use the port variable here
     // ... (rest of the code)
 });
