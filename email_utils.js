@@ -1,47 +1,35 @@
-// email_utils.js
-
 const nodemailer = require('nodemailer');
 
-// These pull from your Render Environment Variables
-const SENDER_EMAIL = process.env.EMAIL_USER;
-const EMAIL_PASSWORD = process.env.EMAIL_PASS; 
+const SMTP_USER = process.env.EMAIL_USER; 
+const SMTP_PASS = process.env.EMAIL_PASS; 
 
 const transporter = nodemailer.createTransport({
     host: 'mail.smtp2go.com',
-    port: 2525, // Use this specific port
+    port: 2525, // Optimized for Render
+    secure: false, 
     auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        user: SMTP_USER,
+        pass: SMTP_PASS, 
     }
 });
 
-/**
- * Sends an email using the configured transporter.
- */
 async function sendEmail(to, subject, text) {
-    if (!SENDER_EMAIL || !EMAIL_PASSWORD) {
-        console.error("EMAIL UTILS ERROR: SENDER_EMAIL or EMAIL_PASS not set.");
-        return;
-    }
-
     const mailOptions = {
-        from: SENDER_EMAIL,
+        // 🚨 CHANGE: This MUST look like a real email address
+        from: 'reports@autoshop-inventory.com', 
         to: to,
         subject: subject,
         text: text,
     };
 
     try {
-        console.log(`Attempting to send email to ${to} from ${SENDER_EMAIL} via Port 465...`);
+        console.log(`🚀 Sending via SMTP2GO to ${to} from ${mailOptions.from}...`);
         let info = await transporter.sendMail(mailOptions);
-        console.log("✅ Email successfully sent: %s", info.messageId); 
+        console.log("✅ SUCCESS: Email sent! ID: %s", info.messageId); 
     } catch (error) {
-        console.error("❌ EMAIL SENDING FAILED:", error.message);
-        // Throwing the error ensures lowStockReport.js knows it failed
-        throw new Error(`Failed to send email. Check Nodemailer configuration and credentials.`);
+        console.error("❌ SMTP2GO SENDING FAILED:", error.message);
+        throw new Error(`Email failed. Check SMTP2GO sender verification.`);
     }
 }
 
-module.exports = {
-    sendEmail
-};
+module.exports = { sendEmail };
