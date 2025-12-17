@@ -7,17 +7,12 @@ const SENDER_EMAIL = process.env.EMAIL_USER;
 const EMAIL_PASSWORD = process.env.EMAIL_PASS; 
 
 const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,
+    host: 'mail.smtp2go.com',
+    port: 2525, // Use this specific port
     auth: {
-        user: SENDER_EMAIL,
-        pass: EMAIL_PASSWORD, 
-    },
-    tls: {
-        rejectUnauthorized: false // This helps bypass certain cloud firewall blocks
-    },
-    connectionTimeout: 20000 // Increased to 20 seconds
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
 });
 
 /**
