@@ -42,6 +42,7 @@ const {
     getVendorPerformanceReport,
     getLocationBreakdownReport 
 } = require('./reporting_logic'); 
+
 const { createReceiving, issueStock } = require('./transaction_logic'); 
 const { lookupUser } = require('./auth_logic'); 
 const { isAuthorized, ACCESS_MAP } = require('./rbac_policy'); 
@@ -276,6 +277,7 @@ p.listen(port, () => {
   app.listen(port, () => {
     console.log(`Server is running on port ${port}`); // Use the port variable here
     // ... (rest of the code)
+    lowStockReport();
 });
 
 
