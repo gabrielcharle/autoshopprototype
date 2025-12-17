@@ -264,14 +264,22 @@ app.post('/api/issue', requireLogin, async (req, res) => {
 
 
 // 6. Start the server
-/*p.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);*/
+/*
+p.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);  */
     
     // 🚨 STARTUP AUTOMATION: Run Low Stock Report on Server Startup 🚨
     /*
     lowStockReport(); */
-    /*
+   /*
 }); */
+
+// The listen function near the end must use the `port` variable:
+p.listen(port, () => {
+    console.log(`Server is running on port ${port}`); // Use the port variable here
+    // ... (rest of the code)
+});
+
 
 // Export all reporting functions
 module.exports = {
