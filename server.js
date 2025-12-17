@@ -63,6 +63,23 @@ app.set('view engine', 'ejs');
 app.use(expressLayouts);
 app.set('layout', 'layout'); 
 
+
+// ..vercel to be remove for local presentation beginning
+
+// --- MIDDLEWARE SETUP ---
+app.set('view engine', 'ejs');
+app.use(expressLayouts);
+app.set('layout', 'layout'); 
+
+// ADD THIS LINE: Explicitly tell EJS where the 'views' folder is.
+/*
+const path = require('path'); // Ensure this is at the top of the file
+*/
+app.set('views', path.join(__dirname, 'views')); // Add this line
+
+// ...
+//end of vercel to be remove for local presentation
+
 app.use(session({
     secret: '8959b17a3498aa6fc8d0c8efa949dcf8',
     resave: false,
@@ -71,7 +88,8 @@ app.use(session({
 })); 
 
 app.use(express.urlencoded({ extended: true })); 
-app.use(express.static('public')); 
+/*
+app.use(express.static('public')); open for presentation locally */
 
 
 // --- AUTHENTICATION & ACCESS CONTROL MIDDLEWARE ---
