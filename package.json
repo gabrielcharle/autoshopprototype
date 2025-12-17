@@ -1,14 +1,14 @@
 {
-  "name": "autoshop",
+  "name": "autoshopprototype",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Gabriel Charles",
   "license": "ISC",
-  "description": "",
+  "description": "Inventory Management App for Vercel deployment.",
   "dependencies": {
     "airtable": "^0.12.2",
     "chart.js": "^4.5.1",
