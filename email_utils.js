@@ -1,30 +1,30 @@
 // email_utils.js
 
 const nodemailer = require('nodemailer');
-// We rely on server.js/lowStockReport.js to load dotenv, but we pull the variables here.
+
+// These pull from your Render Environment Variables
 const SENDER_EMAIL = process.env.EMAIL_USER;
 const EMAIL_PASSWORD = process.env.EMAIL_PASS; 
 
-// --- Configure the Transporter for Gmail ---
+// --- Configure the Transporter (REPLACES the 'service: gmail' block) ---
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,         // Secure SSL port (fixes Render timeout issues)
+    secure: true,      // Required for port 465
     auth: {
         user: SENDER_EMAIL,
         pass: EMAIL_PASSWORD, 
     },
-    connectionTimeout: 10000, 
-    socketTimeout: 10000 
+    connectionTimeout: 15000, // 15 seconds to allow for cloud network latency
+    socketTimeout: 15000
 });
 
 /**
  * Sends an email using the configured transporter.
- * @param {string} to - Recipient email address.
- * @param {string} subject - Email subject line.
- * @param {string} text - Plain text body of the email.
  */
 async function sendEmail(to, subject, text) {
     if (!SENDER_EMAIL || !EMAIL_PASSWORD) {
-        console.error("EMAIL UTILS ERROR: SENDER_EMAIL or EMAIL_PASS not set in .env file.");
+        console.error("EMAIL UTILS ERROR: SENDER_EMAIL or EMAIL_PASS not set.");
         return;
     }
 
@@ -36,11 +36,12 @@ async function sendEmail(to, subject, text) {
     };
 
     try {
-        console.log(`Attempting to send email to ${to} from ${SENDER_EMAIL}...`);
+        console.log(`Attempting to send email to ${to} from ${SENDER_EMAIL} via Port 465...`);
         let info = await transporter.sendMail(mailOptions);
-        console.log("Email successfully sent: %s", info.messageId); 
+        console.log("✅ Email successfully sent: %s", info.messageId); 
     } catch (error) {
-        console.error("EMAIL SENDING FAILED:", error.message);
+        console.error("❌ EMAIL SENDING FAILED:", error.message);
+        // Throwing the error ensures lowStockReport.js knows it failed
         throw new Error(`Failed to send email. Check Nodemailer configuration and credentials.`);
     }
 }
