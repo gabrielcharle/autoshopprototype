@@ -16,7 +16,7 @@ const transporter = nodemailer.createTransport({
 async function sendEmail(to, subject, text) {
     const mailOptions = {
         // 🚨 CHANGE: This MUST look like a real email address
-        from: 'reports@autoshop-inventory.com', 
+        from: '20201126@roytec.edu
         to: to,
         subject: subject,
         text: text,
